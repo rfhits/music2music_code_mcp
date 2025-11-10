@@ -28,7 +28,7 @@ Most useful scripts are located in the `m2m` directory, containing:
 
 The hyperparameter of all experiments are saved in `m2m/hparams`.
 
-## Results
+<!-- ## Results
 ### Objective Evaluation Results for the Band Arrangement Task
 
 Statistical significance: * for _p_ < 0.05, † for _p_ < 0.01, ‡ for _p_ < 0.001.
@@ -91,7 +91,7 @@ PPL = perplexity.
 | Tokenizer        | 𝑇̄<sub>bar</sub> ↓ | 𝑇̄<sub>note</sub> ↓ | 𝐻̄<sub>bar</sub> ↓ | PPL<sub>note</sub> ↓ | PPL<sub>token</sub> ↓ |
 |------------------|--------------------|----------------------|---------------------|-----------------------|------------------------|
 | REMI+            | 225.91             | 4.03                 | 41.68               | 116.20                | **3.00**               |
-| REMI-z (Ours)    | **151.68**         | **2.77**             | **29.43**           | **84.11**             | 4.50                   |
+| REMI-z (Ours)    | **151.68**         | **2.77**             | **29.43**           | **84.11**             | 4.50                   | -->
 
 
 
