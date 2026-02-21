@@ -1,0 +1,46 @@
+[project]
+name = "music2music-mcp"
+version = "0.1.0"
+description = "Simple MCP server for symbolic MIDI arrangement (band/piano/drum)."
+readme = "Readme.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "gradio[mcp]>=6.5.1",
+    "mcp>=1.0.0",
+    "mido>=1.3.3",
+    "REMI-z>=0.5.9",
+    "setuptools>=70.0.0,<81.0.0",
+    "tqdm>=4.66.0",
+    "transformers>=4.40.0,<5.0.0",
+]
+
+[project.optional-dependencies]
+torch-cpu = ["torch"]
+torch-cuda128 = ["torch"]
+dev = [
+    "ipykernel>=6.29.5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["api"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu128", marker = "extra == 'torch-cuda128'" },
+    { index = "pytorch-cpu", marker = "extra == 'torch-cpu' and extra != 'torch-cuda128'" },
+]
+"REMI-z" = { git = "https://github.com/Sonata165/REMI-z.git" }

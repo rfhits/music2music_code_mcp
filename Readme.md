@@ -116,6 +116,35 @@ Here are models on huggingface:
 
 See usage in `tutorial.ipynb`.
 
+## MCP server (simple arrangement tools)
+
+This fork also includes a lightweight MCP server (`app.py`) with three tools:
+
+- `arrange_band_midi`
+- `arrange_piano_midi`
+- `arrange_drum_midi`
+
+The MCP wrapper is implemented to follow the same high-level style used in
+`anticipation_mcp/app.py`: model lazy-loading, strict argument checks, and JSON
+responses containing output MIDI paths.
+
+### Quick start with uv
+
+```bash
+uv python install 3.11
+uv venv --python 3.11
+uv sync --extra torch-cuda128
+uv run python app.py
+```
+
+Default port is `7872`. You can override with `M2M_MCP_PORT`.
+
+### Prefetch Hugging Face models
+
+```bash
+uv run python -c "from transformers import AutoModelForCausalLM, AutoTokenizer; AutoModelForCausalLM.from_pretrained('LongshenOu/m2m_arranger'); AutoModelForCausalLM.from_pretrained('LongshenOu/m2m_pianist_dur'); AutoModelForCausalLM.from_pretrained('LongshenOu/m2m_drummer'); AutoTokenizer.from_pretrained('LongshenOu/m2m_ft')"
+```
+
 
 ## Mapping from token to represented value
 As in the appendix, you can find the mapping from token to their corresponding representing values, for time signature and tempo tokens, in `ts_dict.yaml` and `tempo_dict.yaml`, under the `utils_midi` directory.

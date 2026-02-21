@@ -1,27 +1,43 @@
-'''
-API for inference
-'''
-from transformers import AutoTokenizer, GPT2LMHeadModel
-from remi_z import MultiTrack, Bar
-from typing import List
+"""
+API for inference.
+"""
+
+from typing import List, Optional
+
+import torch
+from remi_z import MultiTrack
+from remi_z.core import Bar
 from tqdm import tqdm
+from transformers import AutoTokenizer, GPT2LMHeadModel
+
+
+def _pick_device(device: str) -> str:
+    """Resolve user device preference to an available runtime device."""
+    device = (device or "auto").strip().lower()
+    if device == "auto":
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    if device not in {"cpu", "cuda"}:
+        raise ValueError("device must be one of: auto, cpu, cuda")
+    if device == "cuda" and not torch.cuda.is_available():
+        return "cpu"
+    return device
 
 
 class BandArranger:
     '''
     Class for arranging music for a band
     '''
-    def __init__(self, model_fp, hf_ckpt=True, device='cuda'):
+    def __init__(self, model_fp, hf_ckpt=True, device="auto"):
         '''
         if hf_ckpt is True, load model from HuggingFace checkpoint
         else, load model from local lightning checkpoint
         '''
-        self.device = device
+        self.device = _pick_device(device)
         if hf_ckpt:
             model = self.from_hf_ckpt(model_fp)
         else:
             raise NotImplementedError("Local checkpoint loading not implemented yet")
-        self.model = model.to(device)
+        self.model = model.to(self.device)
 
         # Prepare tokenizer
         tk_fp = 'LongshenOu/m2m_ft'
@@ -58,11 +74,17 @@ class BandArranger:
         model.eval()
         return model
 
-    def arrange(self, input_midi_fp, use_preset:str, instrument_and_voice=[]) -> MultiTrack:
+    def arrange(
+        self,
+        input_midi_fp,
+        use_preset: Optional[str],
+        instrument_and_voice: Optional[List[int]] = None,
+    ) -> MultiTrack:
         '''
         Arrange input music for the specified band instruments
         '''
         # Check preset
+        instrument_and_voice = list(instrument_and_voice or [])
         if use_preset is not None:
             assert use_preset in self.preset_instruments, f"Preset {use_preset} not found"
             instrument_and_voice = self.preset_instruments[use_preset]
@@ -75,6 +97,7 @@ class BandArranger:
         for bar in tqdm(mt):
             arranged_bar = self.arrange_a_bar(bar, instrument_and_voice, prev_bar)
             arranged.append(arranged_bar)
+            prev_bar = arranged_bar
         ret = MultiTrack.from_bars(arranged)
 
         return ret
@@ -116,17 +139,17 @@ class PianoArranger:
     '''
     Class for arranging music for piano
     '''
-    def __init__(self, model_fp, hf_ckpt, device='cuda'):
+    def __init__(self, model_fp, hf_ckpt=True, device="auto"):
         '''
         if hf_ckpt is True, load model from HuggingFace checkpoint
         else, load model from local lightning checkpoint
         '''
-        self.device = device
+        self.device = _pick_device(device)
         if hf_ckpt:
             model = self.from_hf_ckpt(model_fp)
         else:
             raise NotImplementedError("Local checkpoint loading not implemented yet")
-        self.model = model.to(device)
+        self.model = model.to(self.device)
 
         # Prepare tokenizer
         tk_fp = 'LongshenOu/m2m_ft'
@@ -163,11 +186,17 @@ class PianoArranger:
         model.eval()
         return model
 
-    def arrange(self, input_midi_fp, use_preset:str, instrument_and_voice=[]) -> MultiTrack:
+    def arrange(
+        self,
+        input_midi_fp,
+        use_preset: Optional[str],
+        instrument_and_voice: Optional[List[int]] = None,
+    ) -> MultiTrack:
         '''
         Arrange input music for the specified band instruments
         '''
         # Check preset
+        instrument_and_voice = list(instrument_and_voice or [])
         if use_preset is not None:
             assert use_preset in self.preset_instruments, f"Preset {use_preset} not found"
             instrument_and_voice = self.preset_instruments[use_preset]
@@ -180,6 +209,7 @@ class PianoArranger:
         for bar in tqdm(mt):
             arranged_bar = self.arrange_a_bar(bar, instrument_and_voice, prev_bar)
             arranged.append(arranged_bar)
+            prev_bar = arranged_bar
         ret = MultiTrack.from_bars(arranged)
 
         return ret
@@ -221,17 +251,17 @@ class DrumArranger:
     '''
     Class for arranging music for drums
     '''
-    def __init__(self, model_fp, hf_ckpt=True, device='cuda'):
+    def __init__(self, model_fp, hf_ckpt=True, device="auto"):
         '''
         if hf_ckpt is True, load model from HuggingFace checkpoint
         else, load model from local lightning checkpoint
         '''
-        self.device = device
+        self.device = _pick_device(device)
         if hf_ckpt:
             model = self.from_hf_ckpt(model_fp)
         else:
             raise NotImplementedError("Local checkpoint loading not implemented yet")
-        self.model = model.to(device)
+        self.model = model.to(self.device)
 
         # Prepare tokenizer
         tk_fp = 'LongshenOu/m2m_ft'
@@ -278,7 +308,13 @@ class DrumArranger:
         model.eval()
         return model
 
-    def arrange(self, input_midi_fp, use_preset:str, instrument_and_voice=[], merge_with_input=False) -> MultiTrack:
+    def arrange(
+        self,
+        input_midi_fp,
+        use_preset: Optional[str],
+        instrument_and_voice: Optional[List[int]] = None,
+        merge_with_input=False,
+    ) -> MultiTrack:
         '''
         Arrange a drum track that is compatible with input music
 
@@ -287,6 +323,7 @@ class DrumArranger:
         # - Here: Arrange for each bar with  TODO
         '''
         # Check preset
+        instrument_and_voice = list(instrument_and_voice or [])
         if use_preset is not None:
             assert use_preset in self.preset_instruments, f"Preset {use_preset} not found"
             instrument_and_voice = self.preset_instruments[use_preset]
@@ -310,10 +347,15 @@ class DrumArranger:
                     arranged_seg.bars.append(last_bar)
 
             arranged.extend(arranged_seg.bars)
+            prev_seg = arranged_seg
         ret = MultiTrack.from_bars(arranged)
 
         if merge_with_input:
             mt.remove_tracks([128])
+            if len(mt) != len(ret):
+                min_bars = min(len(mt), len(ret))
+                mt = MultiTrack.from_bars(mt.bars[:min_bars])
+                ret = MultiTrack.from_bars(ret.bars[:min_bars])
             ret = mt.merge_with(ret, 128)
 
         return ret
