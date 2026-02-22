@@ -23,6 +23,23 @@ def _pick_device(device: str) -> str:
     return device
 
 
+def _safe_generate_kwargs(model_input, generate_kwargs):
+    """
+    Ensure generation limits are valid for current input length.
+    """
+    kwargs = dict(generate_kwargs)
+    input_len = int(model_input.shape[-1])
+    max_length = kwargs.get("max_length")
+    if max_length is not None:
+        try:
+            max_length = int(max_length)
+        except (TypeError, ValueError):
+            max_length = 0
+        if max_length <= input_len:
+            kwargs["max_length"] = input_len + 128
+    return kwargs
+
+
 class BandArranger:
     '''
     Class for arranging music for a band
@@ -104,8 +121,9 @@ class BandArranger:
     
     def arrange_a_bar(self, bar, instrument_and_voice, prev_bar) -> Bar:
         model_input = self.assemble_model_input(bar, prev_bar, instrument_and_voice)
+        generate_kwargs = _safe_generate_kwargs(model_input, self.generate_kwargs)
         out = self.model.generate(
-            model_input, pad_token_id=self.tk.pad_token_id, **self.generate_kwargs
+            model_input, pad_token_id=self.tk.pad_token_id, **generate_kwargs
         )
         out_str = self.tk.batch_decode(out)[0]  # because we do bs=1 here
 
@@ -216,8 +234,9 @@ class PianoArranger:
     
     def arrange_a_bar(self, bar, instrument_and_voice, prev_bar) -> Bar:
         model_input = self.assemble_model_input(bar, prev_bar, instrument_and_voice)
+        generate_kwargs = _safe_generate_kwargs(model_input, self.generate_kwargs)
         out = self.model.generate(
-            model_input, pad_token_id=self.tk.pad_token_id, **self.generate_kwargs
+            model_input, pad_token_id=self.tk.pad_token_id, **generate_kwargs
         )
         out_str = self.tk.batch_decode(out)[0]  # because we do bs=1 here
 
@@ -362,8 +381,9 @@ class DrumArranger:
     
     def arrange_a_segment(self, segment:MultiTrack, prev_segment:MultiTrack) -> MultiTrack:
         model_input = self.assemble_model_input(segment, prev_segment, instrument_and_voice=[128])
+        generate_kwargs = _safe_generate_kwargs(model_input, self.generate_kwargs)
         out = self.model.generate(
-            model_input, pad_token_id=self.tk.pad_token_id, **self.generate_kwargs
+            model_input, pad_token_id=self.tk.pad_token_id, **generate_kwargs
         )
         out_str = self.tk.batch_decode(out)[0]  # because we do bs=1 here
 

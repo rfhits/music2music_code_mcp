@@ -82,17 +82,46 @@ def _with_generation_overrides(
     no_repeat_ngram_size: Optional[int],
     max_length: Optional[int],
 ) -> None:
-    kwargs = dict(arranger.generate_kwargs)
+    if not hasattr(arranger, "_default_generate_kwargs"):
+        arranger._default_generate_kwargs = dict(arranger.generate_kwargs)
+    kwargs = dict(arranger._default_generate_kwargs)
+
+    # Be lenient for UI/MCP numeric inputs: ignore invalid values and keep defaults.
     if top_k is not None:
-        kwargs["top_k"] = int(top_k)
+        try:
+            top_k_value = int(top_k)
+            if top_k_value > 0:
+                kwargs["top_k"] = top_k_value
+        except (TypeError, ValueError):
+            pass
     if top_p is not None:
-        kwargs["top_p"] = float(top_p)
+        try:
+            top_p_value = float(top_p)
+            if 0.0 < top_p_value <= 1.0:
+                kwargs["top_p"] = top_p_value
+        except (TypeError, ValueError):
+            pass
     if temperature is not None:
-        kwargs["temperature"] = float(temperature)
+        try:
+            temperature_value = float(temperature)
+            if temperature_value > 0:
+                kwargs["temperature"] = temperature_value
+        except (TypeError, ValueError):
+            pass
     if no_repeat_ngram_size is not None:
-        kwargs["no_repeat_ngram_size"] = int(no_repeat_ngram_size)
+        try:
+            ngram_value = int(no_repeat_ngram_size)
+            if ngram_value >= 0:
+                kwargs["no_repeat_ngram_size"] = ngram_value
+        except (TypeError, ValueError):
+            pass
     if max_length is not None:
-        kwargs["max_length"] = int(max_length)
+        try:
+            max_length_value = int(max_length)
+            if max_length_value > 0:
+                kwargs["max_length"] = max_length_value
+        except (TypeError, ValueError):
+            pass
     arranger.generate_kwargs = kwargs
 
 
